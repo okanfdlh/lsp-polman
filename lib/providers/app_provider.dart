@@ -37,7 +37,22 @@ class AppProvider with ChangeNotifier {
 
   Future<void> fetchUserProfile(String userId) async {
     try {
-      final res = await _supabase.from('users').select().eq('id', userId).maybeSingle();
+      var res = await _supabase.from('users').select().eq('id', userId).maybeSingle();
+      
+      // If user profile is not found in public.users, auto-create default patient profile
+      if (res == null) {
+        final authUser = _supabase.auth.currentUser;
+        if (authUser != null) {
+          final inserted = await _supabase.from('users').insert({
+            'id': authUser.id,
+            'name': authUser.userMetadata?['name'] ?? authUser.email?.split('@')[0] ?? 'User',
+            'email': authUser.email ?? '',
+            'role': 'patient',
+          }).select().single();
+          res = inserted;
+        }
+      }
+
       if (res != null) {
         UserRole role = UserRole.patient;
         final roleStr = res['role'] as String?;
@@ -89,7 +104,7 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Supabase Auth Sign Up
+      // Supabase Auth Sign Up (Profile created automatically by Database Trigger)
       final authRes = await _supabase.auth.signUp(
         email: email.trim(),
         password: password,
@@ -97,14 +112,6 @@ class AppProvider with ChangeNotifier {
       );
 
       if (authRes.user != null) {
-        // 2. Insert Profile Data into public.users
-        await _supabase.from('users').insert({
-          'id': authRes.user!.id,
-          'name': name,
-          'email': email.trim(),
-          'role': 'patient',
-        });
-
         _currentUser = UserModel(
           id: authRes.user!.id,
           name: name,
