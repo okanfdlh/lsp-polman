@@ -7,8 +7,8 @@
 CREATE TYPE user_role AS ENUM ('patient', 'doctor', 'admin');
 CREATE TYPE reservation_status AS ENUM ('waiting', 'in_progress', 'completed', 'cancelled');
 
--- 2. TABEL PROFILES (Terhubung dengan Supabase Auth: auth.users)
-CREATE TABLE public.profiles (
+-- 2. TABEL USERS (Terhubung dengan Supabase Auth: auth.users)
+CREATE TABLE public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -40,7 +40,7 @@ CREATE TABLE public.units (
 -- 5. TABEL DOKTER (Doctors)
 CREATE TABLE public.doctors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL, -- opsional relasi ke akun auth dokter
+    user_id UUID REFERENCES public.users(id) ON DELETE SET NULL, -- opsional relasi ke akun auth dokter
     name VARCHAR(255) NOT NULL,
     specialist_id UUID NOT NULL REFERENCES public.specialists(id) ON DELETE CASCADE,
     unit_id UUID NOT NULL REFERENCES public.units(id) ON DELETE CASCADE,
@@ -55,7 +55,7 @@ CREATE TABLE public.reservations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     queue_number VARCHAR(50) NOT NULL, -- Contoh: "A-001"
     barcode_code VARCHAR(100) NOT NULL UNIQUE, -- Contoh: "RES-20260811-001"
-    patient_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    patient_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     doctor_id UUID NOT NULL REFERENCES public.doctors(id) ON DELETE CASCADE,
     reservation_date DATE NOT NULL DEFAULT CURRENT_DATE,
     status reservation_status NOT NULL DEFAULT 'waiting',
@@ -77,7 +77,7 @@ CREATE INDEX idx_reservations_date_doctor ON public.reservations(reservation_dat
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) & POLICIES (SUPABASE SECURITY)
 -- ==============================================================================
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.specialists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.units ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
@@ -88,17 +88,17 @@ CREATE POLICY "Public Read Specialists" ON public.specialists FOR SELECT USING (
 CREATE POLICY "Public Read Units" ON public.units FOR SELECT USING (true);
 CREATE POLICY "Public Read Doctors" ON public.doctors FOR SELECT USING (true);
 
--- Policy Profiles (User hanya bisa membaca/edit profilnya sendiri)
-CREATE POLICY "User View Own Profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "User Update Own Profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+-- Policy Users (User hanya bisa membaca/edit profilnya sendiri)
+CREATE POLICY "User View Own Profile" ON public.users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "User Update Own Profile" ON public.users FOR UPDATE USING (auth.uid() = id);
 
 -- Policy Reservations (Pasien hanya bisa lihat reservasinya sendiri, Dokter/Admin bisa lihat semua)
 CREATE POLICY "Patient Read Own Reservations" ON public.reservations 
 FOR SELECT USING (
     auth.uid() = patient_id OR 
     EXISTS (
-        SELECT 1 FROM public.profiles 
-        WHERE profiles.id = auth.uid() AND profiles.role IN ('doctor', 'admin')
+        SELECT 1 FROM public.users 
+        WHERE users.id = auth.uid() AND users.role IN ('doctor', 'admin')
     )
 );
 
@@ -108,8 +108,8 @@ FOR INSERT WITH CHECK (auth.uid() = patient_id);
 CREATE POLICY "Doctor/Admin Update Reservation Status" ON public.reservations 
 FOR UPDATE USING (
     EXISTS (
-        SELECT 1 FROM public.profiles 
-        WHERE profiles.id = auth.uid() AND profiles.role IN ('doctor', 'admin')
+        SELECT 1 FROM public.users 
+        WHERE users.id = auth.uid() AND users.role IN ('doctor', 'admin')
     )
 );
 

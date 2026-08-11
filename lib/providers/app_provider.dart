@@ -37,7 +37,7 @@ class AppProvider with ChangeNotifier {
 
   Future<void> fetchUserProfile(String userId) async {
     try {
-      final res = await _supabase.from('profiles').select().eq('id', userId).maybeSingle();
+      final res = await _supabase.from('users').select().eq('id', userId).maybeSingle();
       if (res != null) {
         UserRole role = UserRole.patient;
         final roleStr = res['role'] as String?;
@@ -97,8 +97,8 @@ class AppProvider with ChangeNotifier {
       );
 
       if (authRes.user != null) {
-        // 2. Insert Profile Data into public.profiles
-        await _supabase.from('profiles').insert({
+        // 2. Insert Profile Data into public.users
+        await _supabase.from('users').insert({
           'id': authRes.user!.id,
           'name': name,
           'email': email.trim(),
@@ -183,7 +183,7 @@ class AppProvider with ChangeNotifier {
 
   Future<void> fetchReservations() async {
     try {
-      final res = await _supabase.from('reservations').select('*, doctors(name, specialist_id, unit_id), profiles(name)');
+      final res = await _supabase.from('reservations').select('*, doctors(name, specialist_id, unit_id), users(name)');
       _reservations = (res as List).map((item) {
         ReservationStatus status = ReservationStatus.waiting;
         final stStr = item['status'] as String?;
@@ -192,7 +192,7 @@ class AppProvider with ChangeNotifier {
         if (stStr == 'cancelled') status = ReservationStatus.cancelled;
 
         final doctorName = item['doctors'] != null ? item['doctors']['name'] : 'Dokter';
-        final patientName = item['profiles'] != null ? item['profiles']['name'] : 'Pasien';
+        final patientName = item['users'] != null ? item['users']['name'] : 'Pasien';
 
         return ReservationModel(
           id: item['id'],
