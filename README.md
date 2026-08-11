@@ -1,16 +1,83 @@
-# lsp
+# Aplikasi Pelayanan Kesehatan & Antrean Rumah Sakit (Flutter)
 
-A new Flutter project.
+Aplikasi mobile/web pelayanan kesehatan berbasis **Flutter** yang mengintegrasikan alur pendaftaran pasien, pencarian jadwal dokter, reservasi online dengan tiket Barcode/QR Code, verifikasi antrean oleh dokter, navigasi lokasi GPS unit poliklinik, serta pengawasan master data oleh Super Admin.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 📌 Fitur Utama & Multi-Role User
 
-A few resources to get you started if this is your first Flutter project:
+### 1. 👤 **Pasien / User Umum**
+- **Otentikasi**: Registrasi akun pasien baru & Login.
+- **Cari Dokter & Spesialis**: Informasi lengkap dokter, spesialisasi, unit poliklinik, dan jadwal praktek.
+- **Reservasi Antrean Online**: Membuat janji temu dan mendapatkan **Nomor Antrean Unik** (contoh: `A-001`) serta **Barcode / QR Code Digital** (`RES-20260811-001`).
+- **Navigasi GPS Unit RS**: Pengarahan rute lokasi unit/poliklinik dari posisi pasien menuju koordinat Latitude/Longitude lokasi RS menggunakan peta (Google Maps/Apple Maps).
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 2. 👨‍⚕️ **Dokter**
+- **Daftar Antrean Pasien**: Melihat daftar antrean pasien yang akan diperiksa hari ini secara *real-time*.
+- **Scan / Verifikasi Barcode**: Memindai atau memasukkan kode barcode tiket pasien untuk memverifikasi kedatangan secara cepat.
+- **Update Status Pemeriksaan**: Mengubah status antrean pasien (*Menunggu*, *Dipanggil*, hingga *Selesai*).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 3. 🔐 **Super Admin**
+- **Dashboard Overview**: Ringkasan statistik total Dokter, Unit Poliklinik, Spesialisasi, dan Antrean Keseluruhan.
+- **Manajemen Master Data**: Pengelolaan data Dokter, Unit/Poli, Spesialisasi Medis, dan Jadwal Praktek.
+
+---
+
+## 🔑 Kredensial Pengujian (Demo Quick-Fill)
+
+Pada layar Login, Anda dapat menggunakan tombol *Quick Fill* atau memasukkan akun berikut:
+
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Pasien** | `pasien@mail.com` | `123` |
+| **Dokter** | `dokter@mail.com` | `123` |
+| **Super Admin** | `admin@mail.com` | `123` |
+
+---
+
+## 🛠️ Arsitektur & Teknologi
+
+- **Framework**: Flutter (Dart)
+- **State Management**: `Provider`
+- **QR / Barcode Generator**: `qr_flutter`
+- **Peta & Navigasi**: `url_launcher` (Integrasi Google Maps / Apple Maps via koordinat Lat/Lng)
+- **Scanner**: `mobile_scanner`
+
+---
+
+## 🚀 Cara Menjalankan Aplikasi
+
+### 1. Install Dependensi
+```bash
+flutter pub get
+```
+
+### 2. Jalankan di Android Emulator
+```bash
+flutter run -d emulator-5554
+```
+
+### 3. Jalankan di Web (Chrome)
+```bash
+flutter run -d chrome
+```
+
+### 4. Jalankan di macOS Desktop
+```bash
+flutter run -d macos
+```
+
+---
+
+## 📂 Struktur Direktori Proyek
+
+```text
+lib/
+├── models/
+│   └── models.dart          # Data Model (User, Dokter, Unit, Spesialis, Reservasi)
+├── providers/
+│   └── app_provider.dart    # State Management & Mock Data Repository
+├── screens/
+│   └── app_screens.dart     # UI Screen (Login, Pasien, Dokter, Admin)
+└── main.dart                # App Entry Point & Role-Based Router
+```
