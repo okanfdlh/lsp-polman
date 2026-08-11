@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../models/models.dart';
+import '../../auth/models/auth_models.dart';
+import '../../patient/models/patient_models.dart';
 import '../../../viewmodels/main_viewmodel.dart';
+import 'components/verify_patient_dialog.dart';
 
 class DoctorHomeView extends StatefulWidget {
   const DoctorHomeView({super.key});
@@ -126,7 +128,10 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
             onPressed: () {
               final res = provider.findReservationByBarcode(_searchBarcodeController.text.trim());
               if (res != null) {
-                _showPatientDialog(context, provider, res);
+                showDialog(
+                  context: context,
+                  builder: (_) => VerifyPatientDialog(provider: provider, res: res),
+                );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Barcode Antrean Tidak Ditemukan!')),
@@ -167,40 +172,6 @@ class _DoctorHomeViewState extends State<DoctorHomeView> {
             onPressed: () => provider.logout(),
             icon: const Icon(Icons.logout, color: Colors.white),
             label: const Text('LOGOUT AKUN', style: TextStyle(color: Colors.white)),
-          )
-        ],
-      ),
-    );
-  }
-
-  void _showPatientDialog(BuildContext context, MainViewModel provider, ReservationModel res) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Pasien: ${res.patientName} (${res.queueNumber})'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Kode Barcode: ${res.barcodeCode}'),
-            Text('Unit: ${res.unitName}'),
-            const SizedBox(height: 12),
-            Text('Status Saat Ini: ${res.status.name.toUpperCase()}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () {
-              provider.updateReservationStatus(res.id, ReservationStatus.completed);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pemeriksaan Selesai!')));
-            },
-            child: const Text('Tandai Selesai', style: TextStyle(color: Colors.white)),
           )
         ],
       ),

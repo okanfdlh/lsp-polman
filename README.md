@@ -73,32 +73,39 @@ flutter run -d macos
 
 ```text
 lib/
-├── models/
-│   └── models.dart                     # Global Data Models
 ├── services/
-│   └── supabase_service.dart            # Services Layer (Supabase API & Data Layer)
+│   └── supabase_service.dart            # Services Layer (Supabase API & Data Provider)
 ├── viewmodels/
-│   └── main_viewmodel.dart              # Main ViewModel (State Notifier & Business Logic)
+│   └── main_viewmodel.dart              # ViewModels Layer (State Management Notifier)
 ├── routes/
-│   └── app_routes.dart                 # App Routing (AppRoutes & Named Routes)
+│   └── app_routes.dart                 # App Routing (Named Routes & RootRouter)
 ├── modules/
 │   ├── splash/
 │   │   └── splash_screen.dart           # Splash Screen dengan Animasi
 │   ├── auth/
 │   │   ├── views/ (auth_views.dart)     # UI Screen Login & Registrasi
-│   │   ├── logic/                       # Modul Logic Khusus Otentikasi
-│   │   └── models/                      # UI Models Khusus Otentikasi
+│   │   ├── logic/ (auth_logic.dart)     # Logic Otentikasi
+│   │   └── models/ (auth_models.dart)   # Auth Domain & Form Models
 │   ├── patient/
-│   │   ├── views/ (patient_home_view.dart) # UI Screen Pasien
-│   │   ├── logic/                       # Modul Logic Khusus Pasien
-│   │   └── models/                      # UI Models Khusus Pasien
+│   │   ├── views/
+│   │   │   ├── components/ (ticket_card.dart) # Card Component Tiket Barcode
+│   │   │   └── patient_home_view.dart  # UI Screen Pasien
+│   │   ├── logic/ (patient_logic.dart)  # Logic Navigasi GPS Peta Pasien
+│   │   └── models/ (patient_models.dart)# Antrean & Filter Models
 │   ├── doctor/
-│   │   ├── views/ (doctor_home_view.dart)  # UI Screen Dokter
-│   │   ├── logic/                       # Modul Logic Khusus Dokter
-│   │   └── models/                      # UI Models Khusus Dokter
+│   │   ├── views/
+│   │   │   ├── components/ (verify_patient_dialog.dart) # Component Modal Verifikasi Pasien
+│   │   │   └── doctor_home_view.dart   # UI Screen Dokter
+│   │   ├── logic/ (doctor_logic.dart)   # Logic Scan & Verifikasi Barcode
+│   │   └── models/ (doctor_models.dart) # Doctor & Scan Barcode Models
 │   └── admin/
-│       ├── views/ (admin_home_view.dart)   # UI Screen Super Admin
-│       ├── logic/                       # Modul Logic Khusus Admin
-│       └── models/                      # UI Models Khusus Admin
+│       ├── views/
+│       │   ├── components/
+│       │   │   ├── add_doctor_drawer.dart     # Side Drawer Form Tambah Dokter
+│       │   │   ├── add_unit_drawer.dart       # Side Drawer Form Tambah Unit Poli
+│       │   │   └── add_specialist_drawer.dart # Side Drawer Form Tambah Spesialis
+│       │   └── admin_home_view.dart    # UI Screen Super Admin
+│       ├── logic/ (admin_logic.dart)    # Logic Kalkulasi Statistik Admin
+│       └── models/ (admin_models.dart)  # Specialist, Unit, & Stat Models
 └── main.dart                            # Entry Point & App Router
 ```

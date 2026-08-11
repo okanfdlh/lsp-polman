@@ -111,6 +111,20 @@ FOR UPDATE USING (
         SELECT 1 FROM public.users 
         WHERE users.id = auth.uid() AND users.role IN ('doctor', 'admin')
     )
+-- Policy Master Data Full Access (Super Admin)
+CREATE POLICY "Admin Full Access Specialists" ON public.specialists 
+FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'admin')
+);
+
+CREATE POLICY "Admin Full Access Units" ON public.units 
+FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'admin')
+);
+
+CREATE POLICY "Admin Full Access Doctors" ON public.doctors 
+FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'admin')
 );
 
 -- ==============================================================================

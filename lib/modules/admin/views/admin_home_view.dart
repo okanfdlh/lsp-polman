@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../models/models.dart';
-import '../../../viewmodels/main_viewmodel.dart';
+import '../models/admin_models.dart';
+import '../../../../viewmodels/main_viewmodel.dart';
+import 'components/add_doctor_drawer.dart';
+import 'components/add_unit_drawer.dart';
+import 'components/add_specialist_drawer.dart';
 
 class AdminHomeView extends StatefulWidget {
   const AdminHomeView({super.key});
@@ -12,6 +15,26 @@ class AdminHomeView extends StatefulWidget {
 
 class _AdminHomeViewState extends State<AdminHomeView> {
   int _currentIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  Widget? _currentDrawer;
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _openDrawer(Widget drawerContent) {
+    setState(() {
+      _currentDrawer = drawerContent;
+    });
+    _scaffoldKey.currentState?.openEndDrawer();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +48,8 @@ class _AdminHomeViewState extends State<AdminHomeView> {
     ];
 
     return Scaffold(
+      key: _scaffoldKey,
+      endDrawer: _currentDrawer,
       appBar: AppBar(
         title: const Text('Super Admin Panel'),
         backgroundColor: Colors.deepOrange,
@@ -50,7 +75,6 @@ class _AdminHomeViewState extends State<AdminHomeView> {
     );
   }
 
-  // --- TAB 1: DASHBOARD OVERVIEW ---
   Widget _buildDashboardOverviewTab(BuildContext context, MainViewModel provider) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -77,12 +101,11 @@ class _AdminHomeViewState extends State<AdminHomeView> {
     );
   }
 
-  // --- TAB 2: DOKTER TAB & CRUD DIALOG ---
   Widget _buildDoctorTab(BuildContext context, MainViewModel provider) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.deepOrange,
-        onPressed: () => _showAddDoctorDialog(context, provider),
+        onPressed: () => _openDrawer(AddDoctorDrawer(provider: provider, onShowSnackBar: _showSnackBar)),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Tambah Dokter', style: TextStyle(color: Colors.white)),
       ),
@@ -106,7 +129,10 @@ class _AdminHomeViewState extends State<AdminHomeView> {
                     subtitle: Text('$specName\n$unitName | ${doc.schedule}'),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => provider.deleteDoctor(doc.id),
+                      onPressed: () async {
+                        await provider.deleteDoctor(doc.id);
+                        _showSnackBar('Data dokter berhasil dihapus');
+                      },
                     ),
                   ),
                 );
@@ -115,71 +141,11 @@ class _AdminHomeViewState extends State<AdminHomeView> {
     );
   }
 
-  void _showAddDoctorDialog(BuildContext context, MainViewModel provider) {
-    final nameCtrl = TextEditingController();
-    final scheduleCtrl = TextEditingController(text: 'Senin - Jumat (08:00 - 12:00)');
-    String? selectedSpecId = provider.specialists.isNotEmpty ? provider.specialists.first.id : null;
-    String? selectedUnitId = provider.units.isNotEmpty ? provider.units.first.id : null;
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Tambah Data Dokter'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nama Dokter (beserta Gelar)')),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedSpecId,
-                  decoration: const InputDecoration(labelText: 'Spesialisasi'),
-                  items: provider.specialists.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
-                  onChanged: (val) => setDialogState(() => selectedSpecId = val),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedUnitId,
-                  decoration: const InputDecoration(labelText: 'Unit / Poliklinik'),
-                  items: provider.units.map((u) => DropdownMenuItem(value: u.id, child: Text(u.name))).toList(),
-                  onChanged: (val) => setDialogState(() => selectedUnitId = val),
-                ),
-                const SizedBox(height: 12),
-                TextField(controller: scheduleCtrl, decoration: const InputDecoration(labelText: 'Jadwal Praktek')),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-              onPressed: () async {
-                if (nameCtrl.text.isNotEmpty && selectedSpecId != null && selectedUnitId != null) {
-                  final ok = await provider.addDoctor(
-                    name: nameCtrl.text.trim(),
-                    specialistId: selectedSpecId!,
-                    unitId: selectedUnitId!,
-                    schedule: scheduleCtrl.text.trim(),
-                    imageUrl: 'https://cdn-icons-png.flaticon.com/512/3774/3774299.png',
-                  );
-                  if (ok && context.mounted) Navigator.pop(context);
-                }
-              },
-              child: const Text('Simpan', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- TAB 3: UNIT / POLI TAB & CRUD DIALOG ---
   Widget _buildUnitTab(BuildContext context, MainViewModel provider) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.deepOrange,
-        onPressed: () => _showAddUnitDialog(context, provider),
+        onPressed: () => _openDrawer(AddUnitDrawer(provider: provider, onShowSnackBar: _showSnackBar)),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Tambah Unit / Poli', style: TextStyle(color: Colors.white)),
       ),
@@ -200,7 +166,10 @@ class _AdminHomeViewState extends State<AdminHomeView> {
                     subtitle: Text('${unit.hospitalName} - ${unit.address}\nLat: ${unit.latitude}, Lng: ${unit.longitude}'),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => provider.deleteUnit(unit.id),
+                      onPressed: () async {
+                        await provider.deleteUnit(unit.id);
+                        _showSnackBar('Unit poliklinik berhasil dihapus');
+                      },
                     ),
                   ),
                 );
@@ -209,59 +178,11 @@ class _AdminHomeViewState extends State<AdminHomeView> {
     );
   }
 
-  void _showAddUnitDialog(BuildContext context, MainViewModel provider) {
-    final nameCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
-    final latCtrl = TextEditingController(text: '-6.2088');
-    final lngCtrl = TextEditingController(text: '106.8456');
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Tambah Unit / Poliklinik'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nama Poliklinik (Contoh: Poli Mata)')),
-              const SizedBox(height: 12),
-              TextField(controller: addressCtrl, decoration: const InputDecoration(labelText: 'Alamat / Lokasi Gedung')),
-              const SizedBox(height: 12),
-              TextField(controller: latCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Latitude')),
-              const SizedBox(height: 12),
-              TextField(controller: lngCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Longitude')),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-            onPressed: () async {
-              if (nameCtrl.text.isNotEmpty && addressCtrl.text.isNotEmpty) {
-                final ok = await provider.addUnit(
-                  name: nameCtrl.text.trim(),
-                  hospitalName: 'RS Sehat Sejahtera',
-                  address: addressCtrl.text.trim(),
-                  latitude: double.tryParse(latCtrl.text) ?? -6.2088,
-                  longitude: double.tryParse(lngCtrl.text) ?? 106.8456,
-                );
-                if (ok && context.mounted) Navigator.pop(context);
-              }
-            },
-            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- TAB 4: SPESIALIS TAB & CRUD DIALOG ---
   Widget _buildSpecialistTab(BuildContext context, MainViewModel provider) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.deepOrange,
-        onPressed: () => _showAddSpecialistDialog(context, provider),
+        onPressed: () => _openDrawer(AddSpecialistDrawer(provider: provider, onShowSnackBar: _showSnackBar)),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Tambah Spesialis', style: TextStyle(color: Colors.white)),
       ),
@@ -282,45 +203,15 @@ class _AdminHomeViewState extends State<AdminHomeView> {
                     subtitle: Text(spec.description),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => provider.deleteSpecialist(spec.id),
+                      onPressed: () async {
+                        await provider.deleteSpecialist(spec.id);
+                        _showSnackBar('Data spesialisasi berhasil dihapus');
+                      },
                     ),
                   ),
                 );
               },
             ),
-    );
-  }
-
-  void _showAddSpecialistDialog(BuildContext context, MainViewModel provider) {
-    final nameCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Tambah Spesialisasi Medis'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nama Spesialis (Contoh: Spesialis Mata)')),
-            const SizedBox(height: 12),
-            TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Deskripsi singkat')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-            onPressed: () async {
-              if (nameCtrl.text.isNotEmpty) {
-                final ok = await provider.addSpecialist(nameCtrl.text.trim(), descCtrl.text.trim());
-                if (ok && context.mounted) Navigator.pop(context);
-              }
-            },
-            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
   }
 }

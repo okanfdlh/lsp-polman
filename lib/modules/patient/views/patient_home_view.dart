@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../../models/models.dart';
+import '../../admin/models/admin_models.dart';
 import '../../../viewmodels/main_viewmodel.dart';
+import '../logic/patient_logic.dart';
+import 'components/ticket_card.dart';
 
 class PatientHomeView extends StatefulWidget {
   const PatientHomeView({super.key});
@@ -96,7 +96,7 @@ class _PatientHomeViewState extends State<PatientHomeView> {
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.navigation, size: 16),
                         label: const Text('Lokasi Unit'),
-                        onPressed: () => _openMap(unit.latitude, unit.longitude),
+                        onPressed: () => PatientLogic.openMap(unit.latitude, unit.longitude),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -137,62 +137,8 @@ class _PatientHomeViewState extends State<PatientHomeView> {
       itemCount: tickets.length,
       itemBuilder: (context, index) {
         final ticket = tickets[index];
-        return Card(
-          elevation: 4,
-          margin: const EdgeInsets.only(bottom: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.teal.shade50,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Nomor Antrean: ${ticket.queueNumber}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                QrImageView(
-                  data: ticket.barcodeCode,
-                  version: QrVersions.auto,
-                  size: 160.0,
-                ),
-                const SizedBox(height: 8),
-                Text(ticket.barcodeCode, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                const Divider(height: 24),
-                ListTile(
-                  dense: true,
-                  title: Text(ticket.doctorName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${ticket.specialistName}\n${ticket.unitName}'),
-                  trailing: Chip(
-                    label: Text(
-                      ticket.status.name.toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
-                    ),
-                    backgroundColor: ticket.status == ReservationStatus.waiting
-                        ? Colors.orange
-                        : ticket.status == ReservationStatus.completed
-                            ? Colors.green
-                            : Colors.blue,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        return TicketCard(ticket: ticket);
       },
     );
-  }
-
-  void _openMap(double lat, double lng) async {
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    }
   }
 }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
+import '../modules/auth/models/auth_models.dart';
+import '../modules/doctor/models/doctor_models.dart';
+import '../modules/admin/models/admin_models.dart';
+import '../modules/patient/models/patient_models.dart';
 import '../services/supabase_service.dart';
 
 class MainViewModel with ChangeNotifier {
