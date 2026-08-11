@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/models.dart';
-import 'providers/app_provider.dart';
+import 'viewmodels/main_viewmodel.dart';
 import 'screens/app_screens.dart';
 
 Future<void> main() async {
@@ -15,7 +15,7 @@ Future<void> main() async {
 
   runApp(
     ChangeNotifierProvider(
-      create: (_) => AppProvider(),
+      create: (_) => MainViewModel(),
       child: const MyApp(),
     ),
   );
@@ -43,8 +43,8 @@ class RootRouter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AppProvider>(context);
-    final user = provider.currentUser;
+    final viewModel = Provider.of<MainViewModel>(context);
+    final user = viewModel.currentUser;
 
     if (user == null) {
       return const LoginScreen();

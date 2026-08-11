@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
+import '../services/supabase_service.dart';
 
-class AppProvider with ChangeNotifier {
-  final SupabaseClient _supabase = Supabase.instance.client;
+class MainViewModel with ChangeNotifier {
+  final SupabaseService _supabaseService = SupabaseService();
 
   UserModel? _currentUser;
   UserModel? get currentUser => _currentUser;
@@ -21,15 +21,13 @@ class AppProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  AppProvider() {
+  MainViewModel() {
     _initSession();
     fetchMasterData();
   }
 
-  // --- INITIALIZE & AUTH ---
-
   Future<void> _initSession() async {
-    final session = _supabase.auth.currentSession;
+    final session = _supabaseService.currentSession;
     if (session != null) {
       await fetchUserProfile(session.user.id);
     }
@@ -37,19 +35,17 @@ class AppProvider with ChangeNotifier {
 
   Future<void> fetchUserProfile(String userId) async {
     try {
-      var res = await _supabase.from('users').select().eq('id', userId).maybeSingle();
+      var res = await _supabaseService.getUserProfile(userId);
       
-      // If user profile is not found in public.users, auto-create default patient profile
       if (res == null) {
-        final authUser = _supabase.auth.currentUser;
+        final authUser = _supabaseService.currentAuthUser;
         if (authUser != null) {
-          final inserted = await _supabase.from('users').insert({
-            'id': authUser.id,
-            'name': authUser.userMetadata?['name'] ?? authUser.email?.split('@')[0] ?? 'User',
-            'email': authUser.email ?? '',
-            'role': 'patient',
-          }).select().single();
-          res = inserted;
+          res = await _supabaseService.createUserProfile(
+            authUser.id,
+            authUser.userMetadata?['name'] ?? authUser.email?.split('@')[0] ?? 'User',
+            authUser.email ?? '',
+            'patient',
+          );
         }
       }
 
@@ -78,10 +74,7 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final authRes = await _supabase.auth.signInWithPassword(
-        email: email.trim(),
-        password: password,
-      );
+      final authRes = await _supabaseService.signInWithPassword(email, password);
 
       if (authRes.user != null) {
         await fetchUserProfile(authRes.user!.id);
@@ -91,7 +84,7 @@ class AppProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('Error Supabase Login: $e');
+      debugPrint('Error Login: $e');
     }
 
     _isLoading = false;
@@ -104,12 +97,7 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Supabase Auth Sign Up (Profile created automatically by Database Trigger)
-      final authRes = await _supabase.auth.signUp(
-        email: email.trim(),
-        password: password,
-        data: {'name': name},
-      );
+      final authRes = await _supabaseService.signUp(email, password, name);
 
       if (authRes.user != null) {
         _currentUser = UserModel(
@@ -134,51 +122,40 @@ class AppProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _supabase.auth.signOut();
+    await _supabaseService.signOut();
     _currentUser = null;
     _reservations = [];
     notifyListeners();
   }
 
-  // --- FETCH MASTER DATA (READ) ---
-
   Future<void> fetchMasterData() async {
     try {
-      // Fetch Specialists
-      final specRes = await _supabase.from('specialists').select();
-      _specialists = (specRes as List).map((item) {
-        return SpecialistModel(
-          id: item['id'],
-          name: item['name'],
-          description: item['description'] ?? '',
-        );
-      }).toList();
+      final specRes = await _supabaseService.fetchSpecialists();
+      _specialists = specRes.map((item) => SpecialistModel(
+        id: item['id'],
+        name: item['name'],
+        description: item['description'] ?? '',
+      )).toList();
 
-      // Fetch Units
-      final unitRes = await _supabase.from('units').select();
-      _units = (unitRes as List).map((item) {
-        return UnitModel(
-          id: item['id'],
-          name: item['name'],
-          hospitalName: item['hospital_name'] ?? 'RS Sehat Sejahtera',
-          address: item['address'] ?? '',
-          latitude: (item['latitude'] as num).toDouble(),
-          longitude: (item['longitude'] as num).toDouble(),
-        );
-      }).toList();
+      final unitRes = await _supabaseService.fetchUnits();
+      _units = unitRes.map((item) => UnitModel(
+        id: item['id'],
+        name: item['name'],
+        hospitalName: item['hospital_name'] ?? 'RS Sehat Sejahtera',
+        address: item['address'] ?? '',
+        latitude: (item['latitude'] as num).toDouble(),
+        longitude: (item['longitude'] as num).toDouble(),
+      )).toList();
 
-      // Fetch Doctors
-      final docRes = await _supabase.from('doctors').select();
-      _doctors = (docRes as List).map((item) {
-        return DoctorModel(
-          id: item['id'],
-          name: item['name'],
-          specialistId: item['specialist_id'],
-          unitId: item['unit_id'],
-          schedule: item['schedule'] ?? 'Senin - Jumat',
-          image: item['image_url'] ?? 'https://cdn-icons-png.flaticon.com/512/3774/3774299.png',
-        );
-      }).toList();
+      final docRes = await _supabaseService.fetchDoctors();
+      _doctors = docRes.map((item) => DoctorModel(
+        id: item['id'],
+        name: item['name'],
+        specialistId: item['specialist_id'],
+        unitId: item['unit_id'],
+        schedule: item['schedule'] ?? 'Senin - Jumat',
+        image: item['image_url'] ?? 'https://cdn-icons-png.flaticon.com/512/3774/3774299.png',
+      )).toList();
 
       notifyListeners();
     } catch (e) {
@@ -186,12 +163,10 @@ class AppProvider with ChangeNotifier {
     }
   }
 
-  // --- RESERVATIONS CRUD ---
-
   Future<void> fetchReservations() async {
     try {
-      final res = await _supabase.from('reservations').select('*, doctors(name, specialist_id, unit_id), users(name)');
-      _reservations = (res as List).map((item) {
+      final res = await _supabaseService.fetchReservations();
+      _reservations = res.map((item) {
         ReservationStatus status = ReservationStatus.waiting;
         final stStr = item['status'] as String?;
         if (stStr == 'in_progress') status = ReservationStatus.inProgress;
@@ -231,14 +206,13 @@ class AppProvider with ChangeNotifier {
     final barcode = 'RES-${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
 
     try {
-      final inserted = await _supabase.from('reservations').insert({
-        'queue_number': queueNum,
-        'barcode_code': barcode,
-        'patient_id': patient.id,
-        'doctor_id': doctor.id,
-        'reservation_date': date.toIso8601String().split('T')[0],
-        'status': 'waiting',
-      }).select().single();
+      final inserted = await _supabaseService.createReservation(
+        queueNumber: queueNum,
+        barcodeCode: barcode,
+        patientId: patient.id,
+        doctorId: doctor.id,
+        reservationDate: date.toIso8601String().split('T')[0],
+      );
 
       final specialist = _specialists.firstWhere((s) => s.id == doctor.specialistId, orElse: () => SpecialistModel(id: '', name: 'Spesialis', description: ''));
       final unit = _units.firstWhere((u) => u.id == doctor.unitId, orElse: () => UnitModel(id: '', name: 'Unit RS', hospitalName: 'RS', address: '', latitude: 0, longitude: 0));
@@ -280,7 +254,7 @@ class AppProvider with ChangeNotifier {
       if (newStatus == ReservationStatus.completed) stStr = 'completed';
       if (newStatus == ReservationStatus.cancelled) stStr = 'cancelled';
 
-      await _supabase.from('reservations').update({'status': stStr}).eq('id', resId);
+      await _supabaseService.updateReservationStatus(resId, stStr);
 
       final index = _reservations.indexWhere((r) => r.id == resId);
       if (index != -1) {
@@ -289,74 +263,6 @@ class AppProvider with ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error Update Status: $e');
-    }
-  }
-
-  // --- ADMIN MASTER DATA CRUD ---
-
-  Future<void> addDoctor(DoctorModel doctor) async {
-    try {
-      final res = await _supabase.from('doctors').insert({
-        'name': doctor.name,
-        'specialist_id': doctor.specialistId,
-        'unit_id': doctor.unitId,
-        'schedule': doctor.schedule,
-        'image_url': doctor.image,
-      }).select().single();
-
-      _doctors.add(DoctorModel(
-        id: res['id'],
-        name: doctor.name,
-        specialistId: doctor.specialistId,
-        unitId: doctor.unitId,
-        schedule: doctor.schedule,
-        image: doctor.image,
-      ));
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error Add Doctor: $e');
-    }
-  }
-
-  Future<void> addUnit(UnitModel unit) async {
-    try {
-      final res = await _supabase.from('units').insert({
-        'name': unit.name,
-        'hospital_name': unit.hospitalName,
-        'address': unit.address,
-        'latitude': unit.latitude,
-        'longitude': unit.longitude,
-      }).select().single();
-
-      _units.add(UnitModel(
-        id: res['id'],
-        name: unit.name,
-        hospitalName: unit.hospitalName,
-        address: unit.address,
-        latitude: unit.latitude,
-        longitude: unit.longitude,
-      ));
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error Add Unit: $e');
-    }
-  }
-
-  Future<void> addSpecialist(SpecialistModel specialist) async {
-    try {
-      final res = await _supabase.from('specialists').insert({
-        'name': specialist.name,
-        'description': specialist.description,
-      }).select().single();
-
-      _specialists.add(SpecialistModel(
-        id: res['id'],
-        name: specialist.name,
-        description: specialist.description,
-      ));
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error Add Specialist: $e');
     }
   }
 }

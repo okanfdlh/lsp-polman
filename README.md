@@ -74,10 +74,12 @@ flutter run -d macos
 ```text
 lib/
 ├── models/
-│   └── models.dart          # Data Model (User, Dokter, Unit, Spesialis, Reservasi)
-├── providers/
-│   └── app_provider.dart    # State Management & Mock Data Repository
+│   └── models.dart          # Data Models (User, Doctor, Unit, Specialist, Reservation)
+├── services/
+│   └── supabase_service.dart # Services Layer (Data Provider & API Requests)
+├── viewmodels/
+│   └── main_viewmodel.dart   # ViewModels Layer (State Management & Business Logic)
 ├── screens/
-│   └── app_screens.dart     # UI Screen (Login, Pasien, Dokter, Admin)
-└── main.dart                # App Entry Point & Role-Based Router
+│   └── app_screens.dart     # Views / UI Layer (Auth, Patient, Doctor, Admin Screens)
+└── main.dart                # Entry Point & Role Router
 ```

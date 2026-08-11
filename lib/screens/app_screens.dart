@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
-import '../providers/app_provider.dart';
+import '../viewmodels/main_viewmodel.dart';
 
 // --- AUTH SCREENS ---
 
@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController(text: '123');
 
   void _login() async {
-    final provider = Provider.of<AppProvider>(context, listen: false);
+    final provider = Provider.of<MainViewModel>(context, listen: false);
     final success = await provider.login(_emailController.text, _passwordController.text);
 
     if (!success && mounted) {
@@ -140,7 +140,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lengkapi semua data!')));
       return;
     }
-    final provider = Provider.of<AppProvider>(context, listen: false);
+    final provider = Provider.of<MainViewModel>(context, listen: false);
     final ok = await provider.registerPatient(_nameController.text, _emailController.text, _passwordController.text);
     if (ok && mounted) {
       Navigator.pop(context);
@@ -202,7 +202,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AppProvider>(context);
+    final provider = Provider.of<MainViewModel>(context);
     final user = provider.currentUser!;
 
     final pages = [
@@ -235,7 +235,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
-  Widget _buildDoctorListTab(BuildContext context, AppProvider provider) {
+  Widget _buildDoctorListTab(BuildContext context, MainViewModel provider) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: provider.doctors.length,
@@ -310,7 +310,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
-  Widget _buildMyTicketsTab(BuildContext context, AppProvider provider, String patientId) {
+  Widget _buildMyTicketsTab(BuildContext context, MainViewModel provider, String patientId) {
     final tickets = provider.reservations.where((r) => r.patientId == patientId).toList();
 
     if (tickets.isEmpty) {
@@ -396,7 +396,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AppProvider>(context);
+    final provider = Provider.of<MainViewModel>(context);
     final user = provider.currentUser!;
 
     final doctorReservations = provider.reservations.toList();
@@ -486,7 +486,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
     );
   }
 
-  void _showPatientDialog(BuildContext context, AppProvider provider, ReservationModel res) {
+  void _showPatientDialog(BuildContext context, MainViewModel provider, ReservationModel res) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -528,7 +528,7 @@ class AdminHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AppProvider>(context);
+    final provider = Provider.of<MainViewModel>(context);
 
     return Scaffold(
       appBar: AppBar(
