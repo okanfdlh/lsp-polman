@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
       ),
-      initialRoute: AppRoutes.root,
+      initialRoute: AppRoutes.splash,
       routes: AppRoutes.routes,
       home: const RootRouter(),
     );

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../viewmodels/main_viewmodel.dart';
+import '../modules/splash/splash_screen.dart';
 import '../modules/auth/auth_screens.dart';
 import '../modules/patient/patient_home_screen.dart';
 import '../modules/doctor/doctor_home_screen.dart';
 import '../modules/admin/admin_home_screen.dart';
 
 class AppRoutes {
+  static const String splash = '/splash';
   static const String root = '/';
   static const String login = '/login';
   static const String register = '/register';
@@ -16,6 +18,7 @@ class AppRoutes {
   static const String adminHome = '/admin-home';
 
   static Map<String, WidgetBuilder> get routes => {
+        splash: (context) => const SplashScreen(),
         login: (context) => const LoginScreen(),
         register: (context) => const RegisterScreen(),
         patientHome: (context) => const PatientHomeScreen(),
