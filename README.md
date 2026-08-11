@@ -74,21 +74,31 @@ flutter run -d macos
 ```text
 lib/
 ├── models/
-│   └── models.dart                 # Data Models (User, Doctor, Unit, Specialist, Reservation)
+│   └── models.dart                     # Global Data Models
 ├── services/
-│   └── supabase_service.dart        # Services Layer (Supabase SDK & Data Layer)
+│   └── supabase_service.dart            # Services Layer (Supabase API & Data Layer)
 ├── viewmodels/
-│   └── main_viewmodel.dart          # ViewModels Layer (State Notifier & Business Logic)
+│   └── main_viewmodel.dart              # Main ViewModel (State Notifier & Business Logic)
 ├── routes/
-│   └── app_routes.dart             # Routing Layer (AppRoutes & Named Routes)
+│   └── app_routes.dart                 # App Routing (AppRoutes & Named Routes)
 ├── modules/
+│   ├── splash/
+│   │   └── splash_screen.dart           # Splash Screen dengan Animasi
 │   ├── auth/
-│   │   └── auth_screens.dart        # Modul Otentikasi (Login & Registrasi Pasien)
+│   │   ├── views/ (auth_views.dart)     # UI Screen Login & Registrasi
+│   │   ├── logic/                       # Modul Logic Khusus Otentikasi
+│   │   └── models/                      # UI Models Khusus Otentikasi
 │   ├── patient/
-│   │   └── patient_home_screen.dart # Modul Pasien (Cari Dokter, Reservasi, Tiket Barcode, Navigasi Map)
+│   │   ├── views/ (patient_home_view.dart) # UI Screen Pasien
+│   │   ├── logic/                       # Modul Logic Khusus Pasien
+│   │   └── models/                      # UI Models Khusus Pasien
 │   ├── doctor/
-│   │   └── doctor_home_screen.dart  # Modul Dokter (Daftar Antrean, Scan Barcode, Update Status)
+│   │   ├── views/ (doctor_home_view.dart)  # UI Screen Dokter
+│   │   ├── logic/                       # Modul Logic Khusus Dokter
+│   │   └── models/                      # UI Models Khusus Dokter
 │   └── admin/
-│       └── admin_home_screen.dart   # Modul Super Admin (CRUD Dokter, Poli/Unit, Spesialisasi)
-└── main.dart                        # Entry Point & Role Router
+│       ├── views/ (admin_home_view.dart)   # UI Screen Super Admin
+│       ├── logic/                       # Modul Logic Khusus Admin
+│       └── models/                      # UI Models Khusus Admin
+└── main.dart                            # Entry Point & App Router
 ```

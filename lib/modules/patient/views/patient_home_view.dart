@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../models/models.dart';
-import '../../viewmodels/main_viewmodel.dart';
+import '../../../models/models.dart';
+import '../../../viewmodels/main_viewmodel.dart';
 
-class PatientHomeScreen extends StatefulWidget {
-  const PatientHomeScreen({super.key});
+class PatientHomeView extends StatefulWidget {
+  const PatientHomeView({super.key});
 
   @override
-  State<PatientHomeScreen> createState() => _PatientHomeScreenState();
+  State<PatientHomeView> createState() => _PatientHomeViewState();
 }
 
-class _PatientHomeScreenState extends State<PatientHomeScreen> {
+class _PatientHomeViewState extends State<PatientHomeView> {
   int _currentIndex = 0;
 
   @override

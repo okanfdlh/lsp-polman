@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../viewmodels/main_viewmodel.dart';
 import '../modules/splash/splash_screen.dart';
-import '../modules/auth/auth_screens.dart';
-import '../modules/patient/patient_home_screen.dart';
-import '../modules/doctor/doctor_home_screen.dart';
-import '../modules/admin/admin_home_screen.dart';
+import '../modules/auth/views/auth_views.dart';
+import '../modules/patient/views/patient_home_view.dart';
+import '../modules/doctor/views/doctor_home_view.dart';
+import '../modules/admin/views/admin_home_view.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -19,11 +19,11 @@ class AppRoutes {
 
   static Map<String, WidgetBuilder> get routes => {
         splash: (context) => const SplashScreen(),
-        login: (context) => const LoginScreen(),
-        register: (context) => const RegisterScreen(),
-        patientHome: (context) => const PatientHomeScreen(),
-        doctorHome: (context) => const DoctorHomeScreen(),
-        adminHome: (context) => const AdminHomeScreen(),
+        login: (context) => const LoginView(),
+        register: (context) => const RegisterView(),
+        patientHome: (context) => const PatientHomeView(),
+        doctorHome: (context) => const DoctorHomeView(),
+        adminHome: (context) => const AdminHomeView(),
       };
 }
 
@@ -36,16 +36,16 @@ class RootRouter extends StatelessWidget {
     final user = viewModel.currentUser;
 
     if (user == null) {
-      return const LoginScreen();
+      return const LoginView();
     }
 
     switch (user.role) {
       case UserRole.patient:
-        return const PatientHomeScreen();
+        return const PatientHomeView();
       case UserRole.doctor:
-        return const DoctorHomeScreen();
+        return const DoctorHomeView();
       case UserRole.admin:
-        return const AdminHomeScreen();
+        return const AdminHomeView();
     }
   }
 }

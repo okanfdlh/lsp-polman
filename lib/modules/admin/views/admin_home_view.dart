@@ -1,33 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/models.dart';
-import '../../viewmodels/main_viewmodel.dart';
+import '../../../models/models.dart';
+import '../../../viewmodels/main_viewmodel.dart';
 
-class AdminHomeScreen extends StatefulWidget {
-  const AdminHomeScreen({super.key});
+class AdminHomeView extends StatefulWidget {
+  const AdminHomeView({super.key});
 
   @override
-  State<AdminHomeScreen> createState() => _AdminHomeScreenState();
+  State<AdminHomeView> createState() => _AdminHomeViewState();
 }
 
-class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _AdminHomeViewState extends State<AdminHomeView> {
+  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<MainViewModel>(context);
+
+    final pages = [
+      _buildDashboardOverviewTab(context, provider),
+      _buildDoctorTab(context, provider),
+      _buildUnitTab(context, provider),
+      _buildSpecialistTab(context, provider),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -37,30 +32,52 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         actions: [
           IconButton(icon: const Icon(Icons.logout), onPressed: () => provider.logout())
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          tabs: const [
-            Tab(icon: Icon(Icons.medical_information), text: 'Dokter'),
-            Tab(icon: Icon(Icons.local_hospital), text: 'Unit / Poli'),
-            Tab(icon: Icon(Icons.category), text: 'Spesialis'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildDoctorTab(context, provider),
-          _buildUnitTab(context, provider),
-          _buildSpecialistTab(context, provider),
+      body: pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.deepOrange,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.medical_information), label: 'Dokter'),
+          BottomNavigationBarItem(icon: Icon(Icons.local_hospital), label: 'Unit Poli'),
+          BottomNavigationBarItem(icon: Icon(Icons.category), label: 'Spesialis'),
         ],
       ),
     );
   }
 
-  // --- DOKTER TAB & CRUD DIALOG ---
+  // --- TAB 1: DASHBOARD OVERVIEW ---
+  Widget _buildDashboardOverviewTab(BuildContext context, MainViewModel provider) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('Statistik Master Data & Antrean', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        _buildStatCard('Total Dokter', '${provider.doctors.length}', Icons.medical_information, Colors.blue),
+        _buildStatCard('Total Unit / Poli', '${provider.units.length}', Icons.local_hospital, Colors.green),
+        _buildStatCard('Total Spesialisasi', '${provider.specialists.length}', Icons.category, Colors.orange),
+        _buildStatCard('Total Antrean Pasien', '${provider.reservations.length}', Icons.people, Colors.purple),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String title, String count, IconData icon, Color color) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.2), child: Icon(icon, color: color)),
+        title: Text(title),
+        trailing: Text(count, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  // --- TAB 2: DOKTER TAB & CRUD DIALOG ---
   Widget _buildDoctorTab(BuildContext context, MainViewModel provider) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -157,7 +174,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     );
   }
 
-  // --- UNIT / POLI TAB & CRUD DIALOG ---
+  // --- TAB 3: UNIT / POLI TAB & CRUD DIALOG ---
   Widget _buildUnitTab(BuildContext context, MainViewModel provider) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -239,7 +256,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     );
   }
 
-  // --- SPESIALIS TAB & CRUD DIALOG ---
+  // --- TAB 4: SPESIALIS TAB & CRUD DIALOG ---
   Widget _buildSpecialistTab(BuildContext context, MainViewModel provider) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
