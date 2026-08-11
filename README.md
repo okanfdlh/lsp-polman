@@ -74,12 +74,19 @@ flutter run -d macos
 ```text
 lib/
 ├── models/
-│   └── models.dart          # Data Models (User, Doctor, Unit, Specialist, Reservation)
+│   └── models.dart                 # Data Models (User, Doctor, Unit, Specialist, Reservation)
 ├── services/
-│   └── supabase_service.dart # Services Layer (Data Provider & API Requests)
+│   └── supabase_service.dart        # Services Layer (Supabase SDK & Data Layer)
 ├── viewmodels/
-│   └── main_viewmodel.dart   # ViewModels Layer (State Management & Business Logic)
-├── screens/
-│   └── app_screens.dart     # Views / UI Layer (Auth, Patient, Doctor, Admin Screens)
-└── main.dart                # Entry Point & Role Router
+│   └── main_viewmodel.dart          # ViewModels Layer (State Notifier & Business Logic)
+├── modules/
+│   ├── auth/
+│   │   └── auth_screens.dart        # Modul Otentikasi (Login & Registrasi Pasien)
+│   ├── patient/
+│   │   └── patient_home_screen.dart # Modul Pasien (Cari Dokter, Reservasi, Tiket Barcode, Navigasi Map)
+│   ├── doctor/
+│   │   └── doctor_home_screen.dart  # Modul Dokter (Daftar Antrean, Scan Barcode, Update Status)
+│   └── admin/
+│       └── admin_home_screen.dart   # Modul Super Admin (CRUD Dokter, Poli/Unit, Spesialisasi)
+└── main.dart                        # Entry Point & Role-Based Router
 ```

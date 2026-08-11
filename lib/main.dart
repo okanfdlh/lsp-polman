@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/models.dart';
 import 'viewmodels/main_viewmodel.dart';
-import 'screens/app_screens.dart';
+import 'modules/auth/auth_screens.dart';
+import 'modules/patient/patient_home_screen.dart';
+import 'modules/doctor/doctor_home_screen.dart';
+import 'modules/admin/admin_home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
