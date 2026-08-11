@@ -18,11 +18,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController(text: 'pasien@mail.com');
   final _passwordController = TextEditingController(text: '123');
 
-  void _login() {
+  void _login() async {
     final provider = Provider.of<AppProvider>(context, listen: false);
-    final success = provider.login(_emailController.text, _passwordController.text);
+    final success = await provider.login(_emailController.text, _passwordController.text);
 
-    if (!success) {
+    if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login Gagal! Email atau Password salah.')),
       );
@@ -135,17 +135,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  void _register() {
+  void _register() async {
     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lengkapi semua data!')));
       return;
     }
     final provider = Provider.of<AppProvider>(context, listen: false);
-    final ok = provider.registerPatient(_nameController.text, _emailController.text, _passwordController.text);
-    if (ok) {
+    final ok = await provider.registerPatient(_nameController.text, _emailController.text, _passwordController.text);
+    if (ok && mounted) {
       Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email sudah terdaftar!')));
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email sudah terdaftar atau gagal registrasi!')));
     }
   }
 
@@ -288,12 +288,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                        onPressed: () {
-                          final res = provider.createReservation(doc, DateTime.now());
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Reservasi berhasil! No Antrean: ${res.queueNumber}')),
-                          );
-                          setState(() => _currentIndex = 1);
+                        onPressed: () async {
+                          final res = await provider.createReservation(doc, DateTime.now());
+                          if (res != null && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Reservasi berhasil! No Antrean: ${res.queueNumber}')),
+                            );
+                            setState(() => _currentIndex = 1);
+                          }
                         },
                         child: const Text('Reservasi', style: TextStyle(color: Colors.white)),
                       ),
