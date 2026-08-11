@@ -265,4 +265,116 @@ class MainViewModel with ChangeNotifier {
       debugPrint('Error Update Status: $e');
     }
   }
+
+  // --- ADMIN MASTER DATA CRUD METHODS ---
+
+  Future<bool> addDoctor({
+    required String name,
+    required String specialistId,
+    required String unitId,
+    required String schedule,
+    required String imageUrl,
+  }) async {
+    try {
+      final res = await _supabaseService.createDoctor(
+        name: name,
+        specialistId: specialistId,
+        unitId: unitId,
+        schedule: schedule,
+        imageUrl: imageUrl,
+      );
+
+      _doctors.add(DoctorModel(
+        id: res['id'],
+        name: name,
+        specialistId: specialistId,
+        unitId: unitId,
+        schedule: schedule,
+        image: imageUrl,
+      ));
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error Add Doctor: $e');
+      return false;
+    }
+  }
+
+  Future<void> deleteDoctor(String id) async {
+    try {
+      await _supabaseService.deleteDoctor(id);
+      _doctors.removeWhere((d) => d.id == id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error Delete Doctor: $e');
+    }
+  }
+
+  Future<bool> addUnit({
+    required String name,
+    required String hospitalName,
+    required String address,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final res = await _supabaseService.createUnit(
+        name: name,
+        hospitalName: hospitalName,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+      );
+
+      _units.add(UnitModel(
+        id: res['id'],
+        name: name,
+        hospitalName: hospitalName,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+      ));
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error Add Unit: $e');
+      return false;
+    }
+  }
+
+  Future<void> deleteUnit(String id) async {
+    try {
+      await _supabaseService.deleteUnit(id);
+      _units.removeWhere((u) => u.id == id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error Delete Unit: $e');
+    }
+  }
+
+  Future<bool> addSpecialist(String name, String description) async {
+    try {
+      final res = await _supabaseService.createSpecialist(name, description);
+      _specialists.add(SpecialistModel(
+        id: res['id'],
+        name: name,
+        description: description,
+      ));
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error Add Specialist: $e');
+      return false;
+    }
+  }
+
+  Future<void> deleteSpecialist(String id) async {
+    try {
+      await _supabaseService.deleteSpecialist(id);
+      _specialists.removeWhere((s) => s.id == id);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error Delete Specialist: $e');
+    }
+  }
 }

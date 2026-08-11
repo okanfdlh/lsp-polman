@@ -40,10 +40,21 @@ class SupabaseService {
     }).select().single();
   }
 
-  // --- MASTER DATA SERVICES ---
+  // --- MASTER DATA SERVICES (CRUD) ---
   Future<List<Map<String, dynamic>>> fetchSpecialists() async {
     final res = await _supabase.from('specialists').select();
     return List<Map<String, dynamic>>.from(res);
+  }
+
+  Future<Map<String, dynamic>> createSpecialist(String name, String description) async {
+    return await _supabase.from('specialists').insert({
+      'name': name,
+      'description': description,
+    }).select().single();
+  }
+
+  Future<void> deleteSpecialist(String id) async {
+    await _supabase.from('specialists').delete().eq('id', id);
   }
 
   Future<List<Map<String, dynamic>>> fetchUnits() async {
@@ -51,9 +62,49 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(res);
   }
 
+  Future<Map<String, dynamic>> createUnit({
+    required String name,
+    required String hospitalName,
+    required String address,
+    required double latitude,
+    required double longitude,
+  }) async {
+    return await _supabase.from('units').insert({
+      'name': name,
+      'hospital_name': hospitalName,
+      'address': address,
+      'latitude': latitude,
+      'longitude': longitude,
+    }).select().single();
+  }
+
+  Future<void> deleteUnit(String id) async {
+    await _supabase.from('units').delete().eq('id', id);
+  }
+
   Future<List<Map<String, dynamic>>> fetchDoctors() async {
     final res = await _supabase.from('doctors').select();
     return List<Map<String, dynamic>>.from(res);
+  }
+
+  Future<Map<String, dynamic>> createDoctor({
+    required String name,
+    required String specialistId,
+    required String unitId,
+    required String schedule,
+    required String imageUrl,
+  }) async {
+    return await _supabase.from('doctors').insert({
+      'name': name,
+      'specialist_id': specialistId,
+      'unit_id': unitId,
+      'schedule': schedule,
+      'image_url': imageUrl,
+    }).select().single();
+  }
+
+  Future<void> deleteDoctor(String id) async {
+    await _supabase.from('doctors').delete().eq('id', id);
   }
 
   // --- RESERVATION SERVICES ---
