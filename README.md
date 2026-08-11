@@ -79,6 +79,8 @@ lib/
 │   └── supabase_service.dart        # Services Layer (Supabase SDK & Data Layer)
 ├── viewmodels/
 │   └── main_viewmodel.dart          # ViewModels Layer (State Notifier & Business Logic)
+├── routes/
+│   └── app_routes.dart             # Routing Layer (AppRoutes & Named Routes)
 ├── modules/
 │   ├── auth/
 │   │   └── auth_screens.dart        # Modul Otentikasi (Login & Registrasi Pasien)
@@ -88,5 +90,5 @@ lib/
 │   │   └── doctor_home_screen.dart  # Modul Dokter (Daftar Antrean, Scan Barcode, Update Status)
 │   └── admin/
 │       └── admin_home_screen.dart   # Modul Super Admin (CRUD Dokter, Poli/Unit, Spesialisasi)
-└── main.dart                        # Entry Point & Role-Based Router
+└── main.dart                        # Entry Point & Role Router
 ```
