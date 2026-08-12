@@ -1,8 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:lsp/modules/patient/models/patient_models.dart';
-import 'package:lsp/modules/doctor/models/doctor_models.dart';
 import 'package:lsp/viewmodels/main_viewmodel.dart';
 
 class MockLocalStorage extends LocalStorage {
@@ -32,14 +30,16 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    // Mock Channel SharedPreferences
-    const MethodChannel('plugins.flutter.io/shared_preferences')
-        .setMockMethodCallHandler((MethodCall methodCall) async {
-      if (methodCall.method == 'getAll') {
-        return <String, dynamic>{};
-      }
-      return null;
-    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/shared_preferences'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'getAll') {
+          return <String, dynamic>{};
+        }
+        return null;
+      },
+    );
 
     await Supabase.initialize(
       url: 'https://obtsgtsjbnpzgldzwzvz.supabase.co',

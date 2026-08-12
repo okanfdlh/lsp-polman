@@ -5,7 +5,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Lsp</string>
+	<string>Pelayanan Kesehatan</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi memerlukan akses kamera untuk melakukan scan barcode tiket pasien.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Aplikasi memerlukan akses lokasi untuk menentukan posisi Anda dan menampilkan peta sebaran unit poliklinik terdekat.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Aplikasi memerlukan akses lokasi untuk rute GPS ke poliklinik.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

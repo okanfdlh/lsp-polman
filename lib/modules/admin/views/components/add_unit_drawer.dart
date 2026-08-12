@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../../../main.dart';
+import '../../models/admin_models.dart';
 import '../../../../viewmodels/main_viewmodel.dart';
+import '../../../../services/map/location_service.dart';
 import '../../logic/admin_logic.dart';
 
 class AddUnitDrawer extends StatefulWidget {
   final MainViewModel provider;
   final Function(String message, {bool isError}) onShowSnackBar;
+  final UnitModel? unitToEdit;
 
   const AddUnitDrawer({
     super.key,
     required this.provider,
     required this.onShowSnackBar,
+    this.unitToEdit,
   });
 
   @override
@@ -20,7 +26,9 @@ class AddUnitDrawer extends StatefulWidget {
 
 class _AddUnitDrawerState extends State<AddUnitDrawer> {
   final nameCtrl = TextEditingController();
+  final hospitalCtrl = TextEditingController(text: 'RS Sehat Sejahtera');
   final addressCtrl = TextEditingController();
+  final searchCtrl = TextEditingController();
   final latCtrl = TextEditingController(text: '-6.208800');
   final lngCtrl = TextEditingController(text: '106.845600');
 
@@ -29,17 +37,62 @@ class _AddUnitDrawerState extends State<AddUnitDrawer> {
 
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
+  bool _isLocatingUser = false;
+  bool _isLoading = false;
+
+  bool get isEdit => widget.unitToEdit != null;
+
+  final List<Map<String, dynamic>> _presetPlaces = [
+    {'display_name': 'Puskesmas Sungailiat, Kab. Bangka, Kepulauan Bangka Belitung', 'lat': -1.856611, 'lon': 106.115456},
+    {'display_name': 'RSUD Depati Bahrin Sungailiat, Kab. Bangka', 'lat': -1.862400, 'lon': 106.118900},
+    {'display_name': 'RS Medika Stania Sungailiat, Kab. Bangka', 'lat': -1.854200, 'lon': 106.112100},
+    {'display_name': 'RS Sehat Sejahtera (Pusat), Jakarta Pusat', 'lat': -6.208800, 'lon': 106.845600},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (isEdit) {
+      final unit = widget.unitToEdit!;
+      nameCtrl.text = unit.name;
+      hospitalCtrl.text = unit.hospitalName;
+      addressCtrl.text = unit.address;
+      latCtrl.text = unit.latitude.toStringAsFixed(6);
+      lngCtrl.text = unit.longitude.toStringAsFixed(6);
+      _selectedLatLng = LatLng(unit.latitude, unit.longitude);
+    }
+  }
+
+  @override
+  void dispose() {
+    nameCtrl.dispose();
+    hospitalCtrl.dispose();
+    addressCtrl.dispose();
+    searchCtrl.dispose();
+    latCtrl.dispose();
+    lngCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _performSearch(String query) async {
-    if (query.trim().length < 3) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) {
       setState(() => _searchResults = []);
       return;
     }
+
     setState(() => _isSearching = true);
-    final results = await AdminLogic.searchOSMPlaces(query);
+
+    final localMatches = _presetPlaces.where((p) {
+      final name = p['display_name'].toString().toLowerCase();
+      return name.contains(q);
+    }).toList();
+
+    final apiResults = await AdminLogic.searchOSMPlaces(q);
+
     if (mounted) {
       setState(() {
-        _searchResults = results;
+        _searchResults = [...localMatches, ...apiResults];
         _isSearching = false;
       });
     }
@@ -56,244 +109,365 @@ class _AddUnitDrawerState extends State<AddUnitDrawer> {
 
     if (displayName != null) {
       addressCtrl.text = displayName;
+      searchCtrl.text = displayName;
     } else {
       final address = await AdminLogic.reverseGeocode(latLng);
       if (address != null && mounted) {
-        setState(() => addressCtrl.text = address);
+        setState(() {
+          addressCtrl.text = address;
+          searchCtrl.text = address;
+        });
       }
+    }
+  }
+
+  Future<void> _getUserLocation() async {
+    setState(() => _isLocatingUser = true);
+    final userPos = await LocationService.getCurrentLocation(context);
+    setState(() => _isLocatingUser = false);
+    if (userPos != null) {
+      _onLocationSelected(userPos);
+      widget.onShowSnackBar('Lokasi perangkat Anda berhasil ditemukan!');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      width: MediaQuery.of(context).size.width * 0.90,
+      width: MediaQuery.of(context).size.width * 0.92,
+      backgroundColor: AppColors.background,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primaryDark, AppColors.primary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Row(
                 children: [
-                  const Text('Tambah Unit / Poli', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                    child: Icon(isEdit ? Icons.edit_location_outlined : Icons.add_location_outlined, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(isEdit ? 'Edit Unit / Poli' : 'Tambah Unit / Poli Baru', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                        Text('Atur lokasi unit di peta interaktif', style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.75))),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: Colors.white, size: 18),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ],
               ),
-              const Divider(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: nameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Nama Poliklinik',
-                          prefixIcon: Icon(Icons.local_hospital),
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+            ),
 
-                      // INPUT PENCARIAN REAL LOKASI (OPENSTREETMAP NOMINATIM LIVE SEARCH)
-                      const Text(
-                        'Cari Lokasi Real (Contoh: Puskesmas Sungailiat):',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.deepOrange),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        onChanged: (val) => _performSearch(val),
-                        decoration: InputDecoration(
-                          hintText: 'Ketik lokasi (misal: Puskesmas Sungailiat)...',
-                          prefixIcon: const Icon(Icons.search, color: Colors.deepOrange),
-                          suffixIcon: _isSearching
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: Padding(
-                                    padding: EdgeInsets.all(10.0),
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
-                                )
-                              : null,
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
+            // Form
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
 
-                      // HASIL LIST PENCARIAN REAL-TIME
-                      if (_searchResults.isNotEmpty)
-                        Container(
-                          margin: const EdgeInsets.only(top: 4),
-                          constraints: const BoxConstraints(maxHeight: 180),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.deepOrange),
-                            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                          ),
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: _searchResults.length,
-                            itemBuilder: (context, index) {
-                              final item = _searchResults[index];
-                              return ListTile(
-                                dense: true,
-                                leading: const Icon(Icons.location_on, color: Colors.deepOrange, size: 20),
-                                title: Text(
-                                  item['display_name'],
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                onTap: () {
-                                  final newPos = LatLng(item['lat'], item['lon']);
-                                  _onLocationSelected(newPos, displayName: item['display_name']);
-                                  widget.onShowSnackBar('Lokasi ditemukan & peta telah diperbarui!');
+                    _buildLabel('Nama Poliklinik / Unit'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: nameCtrl,
+                      style: GoogleFonts.inter(fontSize: 14),
+                      decoration: const InputDecoration(
+                        hintText: 'Contoh: Poli Penyakit Dalam',
+                        prefixIcon: Icon(Icons.local_hospital_outlined, size: 20, color: AppColors.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    _buildLabel('Nama Rumah Sakit / Faskes'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: hospitalCtrl,
+                      style: GoogleFonts.inter(fontSize: 14),
+                      decoration: const InputDecoration(
+                        hintText: 'Contoh: RS Sehat Sejahtera',
+                        prefixIcon: Icon(Icons.business_outlined, size: 20, color: AppColors.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // GPS Location button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.primary),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: _isLocatingUser
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                            : const Icon(Icons.my_location, color: AppColors.primary, size: 18),
+                        label: Text(
+                          _isLocatingUser ? 'Mencari lokasi...' : 'Gunakan Lokasi GPS Perangkat',
+                          style: GoogleFonts.inter(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                        onPressed: _isLocatingUser ? null : _getUserLocation,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Search field
+                    Row(
+                      children: [
+                        const Icon(Icons.search, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text('Cari Lokasi di Peta', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: searchCtrl,
+                      onChanged: (val) => _performSearch(val),
+                      style: GoogleFonts.inter(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Ketik nama lokasi (Puskesmas, RS...)',
+                        prefixIcon: const Icon(Icons.place_outlined, size: 20, color: AppColors.primary),
+                        suffixIcon: _isSearching
+                            ? const Padding(padding: EdgeInsets.all(10.0), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)))
+                            : IconButton(
+                                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondary),
+                                onPressed: () {
+                                  searchCtrl.clear();
+                                  setState(() => _searchResults = []);
                                 },
-                              );
-                            },
-                          ),
-                        ),
-
-                      const SizedBox(height: 16),
-
-                      // INTERACTIVE MAP CONTAINER (FLUTTER_MAP)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Peta Interaktif (Tap Lokasi):',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.deepOrange),
-                          ),
-                          Text(
-                            '${_selectedLatLng.latitude.toStringAsFixed(4)}, ${_selectedLatLng.longitude.toStringAsFixed(4)}',
-                            style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey),
-                          ),
-                        ],
+                              ),
                       ),
-                      const SizedBox(height: 6),
+                    ),
+
+                    // Search results dropdown
+                    if (_searchResults.isNotEmpty)
                       Container(
-                        height: 220,
+                        margin: const EdgeInsets.only(top: 4),
+                        constraints: const BoxConstraints(maxHeight: 190),
                         decoration: BoxDecoration(
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.deepOrange, width: 2),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 4))],
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: FlutterMap(
-                            mapController: _mapController,
-                            options: MapOptions(
-                              initialCenter: _selectedLatLng,
-                              initialZoom: 15.0,
-                              onTap: (tapPosition, point) {
-                                _onLocationSelected(point);
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: _searchResults.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+                          itemBuilder: (context, index) {
+                            final item = _searchResults[index];
+                            return ListTile(
+                              dense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                              leading: const Icon(Icons.location_on, color: AppColors.primary, size: 18),
+                              title: Text(
+                                item['display_name'],
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(fontSize: 12, color: AppColors.textPrimary),
+                              ),
+                              onTap: () {
+                                final newPos = LatLng(item['lat'], item['lon']);
+                                _onLocationSelected(newPos, displayName: item['display_name']);
+                                widget.onShowSnackBar('Lokasi ditemukan & peta diperbarui!');
                               },
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.example.lsp',
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  Marker(
-                                    point: _selectedLatLng,
-                                    width: 40,
-                                    height: 40,
-                                    child: const Icon(
-                                      Icons.location_on,
-                                      color: Colors.red,
-                                      size: 40,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        '* Ketuk titik di peta untuk memindahkan pin lokasi & koordinat otomatis',
-                        style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
                       ),
 
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: addressCtrl,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Alamat Lengkap / Lokasi Gedung',
-                          prefixIcon: Icon(Icons.location_on),
-                          border: OutlineInputBorder(),
+                    const SizedBox(height: 14),
+
+                    // Map label with coordinates
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(children: [
+                          const Icon(Icons.map_outlined, size: 16, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text('Peta Interaktif', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                        ]),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: const Color(0xFFE0F5F2), borderRadius: BorderRadius.circular(6)),
+                          child: Text(
+                            '${_selectedLatLng.latitude.toStringAsFixed(4)}, ${_selectedLatLng.longitude.toStringAsFixed(4)}',
+                            style: GoogleFonts.inter(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Interactive Map
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        height: 220,
+                        child: FlutterMap(
+                          mapController: _mapController,
+                          options: MapOptions(
+                            initialCenter: _selectedLatLng,
+                            initialZoom: 15.0,
+                            onTap: (tapPosition, point) => _onLocationSelected(point),
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.lsp',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: _selectedLatLng,
+                                  width: 44,
+                                  height: 44,
+                                  child: const Icon(Icons.location_on, color: Color(0xFFE53935), size: 44),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: latCtrl,
-                              readOnly: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Latitude',
-                                prefixIcon: Icon(Icons.my_location),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: lngCtrl,
-                              readOnly: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Longitude',
-                                prefixIcon: Icon(Icons.explore),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '* Ketuk titik di peta untuk memindahkan pin & koordinat otomatis terisi',
+                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Address field
+                    _buildLabel('Alamat Lengkap'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: addressCtrl,
+                      maxLines: 2,
+                      style: GoogleFonts.inter(fontSize: 14),
+                      decoration: const InputDecoration(
+                        hintText: 'Alamat lengkap unit / gedung RS...',
+                        prefixIcon: Icon(Icons.location_on_outlined, size: 20, color: AppColors.primary),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Lat/Lng display
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: latCtrl,
+                            readOnly: true,
+                            style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+                            decoration: const InputDecoration(
+                              labelText: 'Latitude',
+                              prefixIcon: Icon(Icons.my_location_outlined, size: 18, color: AppColors.textSecondary),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: lngCtrl,
+                            readOnly: true,
+                            style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+                            decoration: const InputDecoration(
+                              labelText: 'Longitude',
+                              prefixIcon: Icon(Icons.explore_outlined, size: 18, color: AppColors.textSecondary),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  minimumSize: const Size.fromHeight(50),
-                ),
-                icon: const Icon(Icons.save, color: Colors.white),
-                label: const Text('Simpan Unit Poliklinik', style: TextStyle(color: Colors.white, fontSize: 16)),
-                onPressed: () async {
-                  if (nameCtrl.text.isNotEmpty && addressCtrl.text.isNotEmpty) {
-                    final ok = await widget.provider.addUnit(
-                      name: nameCtrl.text.trim(),
-                      hospitalName: 'RS Sehat Sejahtera',
-                      address: addressCtrl.text.trim(),
-                      latitude: double.tryParse(latCtrl.text) ?? _selectedLatLng.latitude,
-                      longitude: double.tryParse(lngCtrl.text) ?? _selectedLatLng.longitude,
-                    );
-                    if (context.mounted) Navigator.pop(context);
-                    if (ok) {
-                      widget.onShowSnackBar('Unit poliklinik berhasil ditambahkan!');
-                    } else {
-                      widget.onShowSnackBar('Gagal menambah unit. Periksa hak akses database RLS.', isError: true);
+            ),
+
+            // Save Button
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4))],
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: _isLoading
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Icon(isEdit ? Icons.save_outlined : Icons.add_location_alt_outlined, color: Colors.white),
+                  label: Text(isEdit ? 'Perbarui Unit Poli' : 'Simpan Unit Poli', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 15)),
+                  onPressed: _isLoading ? null : () async {
+                    if (nameCtrl.text.isEmpty || addressCtrl.text.isEmpty) {
+                      widget.onShowSnackBar('Harap lengkapi nama poli dan alamat!', isError: true);
+                      return;
                     }
-                  } else {
-                    widget.onShowSnackBar('Harap lengkapi nama poli dan alamat!', isError: true);
-                  }
-                },
-              )
-            ],
-          ),
+                    setState(() => _isLoading = true);
+                    bool ok;
+                    if (isEdit) {
+                      ok = await widget.provider.updateUnit(
+                        id: widget.unitToEdit!.id,
+                        name: nameCtrl.text.trim(),
+                        hospitalName: hospitalCtrl.text.trim(),
+                        address: addressCtrl.text.trim(),
+                        latitude: double.tryParse(latCtrl.text) ?? _selectedLatLng.latitude,
+                        longitude: double.tryParse(lngCtrl.text) ?? _selectedLatLng.longitude,
+                      );
+                    } else {
+                      ok = await widget.provider.addUnit(
+                        name: nameCtrl.text.trim(),
+                        hospitalName: hospitalCtrl.text.trim(),
+                        address: addressCtrl.text.trim(),
+                        latitude: double.tryParse(latCtrl.text) ?? _selectedLatLng.latitude,
+                        longitude: double.tryParse(lngCtrl.text) ?? _selectedLatLng.longitude,
+                      );
+                    }
+                    if (mounted) setState(() => _isLoading = false);
+                    if (context.mounted) Navigator.pop(context);
+                    widget.onShowSnackBar(
+                      ok ? (isEdit ? 'Unit poli berhasil diperbarui!' : 'Unit poli berhasil ditambahkan!') : 'Gagal menyimpan. Periksa koneksi.',
+                      isError: !ok,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(text, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary));
   }
 }
